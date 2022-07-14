@@ -14,5 +14,32 @@ func getOne(id int64) user {
 }
 
 func getBatch(n int64, pool int64) (res []user) {
-	return nil
+	inputChan := make(chan int64)
+	usersChan := make(chan user)
+	for i := 0; i < int(pool); i++ {
+		go worker(inputChan, usersChan)
+	}
+	go func() {
+		for i := int64(0); i < n; i++ {
+			inputChan <- i
+		}
+		close(inputChan)
+	}()
+
+	result := make([]user, n)
+	i := int64(0)
+	for user := range usersChan {
+		result[i] = user
+		i++
+		if i == n {
+			break
+		}
+	}
+	return result
+}
+
+func worker(in chan int64, returnChan chan user) {
+	for i := range in {
+		returnChan <- getOne(i)
+	}
 }
